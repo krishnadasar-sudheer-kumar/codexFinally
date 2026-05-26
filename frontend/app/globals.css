@@ -77,7 +77,7 @@ h1 {
 
 .top-metrics {
   display: grid;
-  grid-template-columns: repeat(4, minmax(112px, 1fr));
+  grid-template-columns: repeat(4, minmax(96px, 1fr));
   gap: 6px;
 }
 
@@ -127,7 +127,7 @@ h1 {
 
 .command-grid {
   display: grid;
-  grid-template-columns: minmax(250px, 300px) minmax(520px, 1fr) minmax(340px, 390px);
+  grid-template-columns: minmax(220px, 280px) minmax(360px, 1fr) minmax(280px, 360px);
   grid-template-areas: "watch center chat";
   gap: 12px;
   margin-top: 10px;
@@ -613,7 +613,7 @@ label {
   font-variant-numeric: tabular-nums;
 }
 
-@media (max-width: 1320px) {
+@media (max-width: 1100px) {
   .topbar {
     grid-template-columns: 1fr;
   }
@@ -623,28 +623,11 @@ label {
   }
 
   .command-grid {
-    grid-template-columns: minmax(260px, 300px) minmax(420px, 1fr);
-    grid-template-areas:
-      "watch center"
-      "chat chat";
-  }
-
-  .chat-panel {
-    height: 520px;
-    min-height: 0;
-  }
-
-  .center-rail,
-  .watchlist-panel {
-    min-height: 0;
-  }
-
-  .watchlist-panel {
-    height: 560px;
+    grid-template-columns: minmax(210px, 250px) minmax(330px, 1fr) minmax(250px, 320px);
   }
 }
 
-@media (max-width: 920px) {
+@media (max-width: 860px) {
   .workstation {
     padding: 10px;
   }
