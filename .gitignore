@@ -196,6 +196,7 @@ cython_debug/
 test/node_modules/
 test/playwright-report/
 test/test-results/
+tmp/
 
 # PyPI configuration file
 .pypirc

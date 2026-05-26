@@ -379,6 +379,7 @@ export default function TradingWorkstation() {
 
   const selectedSeries = series[selectedTicker] ?? [];
   const selectedItem = watchlist.find((item) => item.ticker === selectedTicker);
+  const selectedDirection = flash[selectedTicker] ?? selectedItem?.direction ?? 'flat';
   const historyValues = history.map((snapshot) => snapshot.total_value);
   const historyLabels = history.map((snapshot) => new Date(snapshot.recorded_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
 
@@ -491,8 +492,8 @@ export default function TradingWorkstation() {
         </div>
       </header>
 
-      <section className="terminal-grid">
-        <aside className="panel watchlist-panel">
+      <section className="command-grid">
+        <aside className="panel watchlist-panel" aria-label="Live watchlist">
           <div className="panel-heading">
             <div>
               <span>Live Watchlist</span>
@@ -543,22 +544,50 @@ export default function TradingWorkstation() {
           </div>
         </aside>
 
-        <section className="main-stack">
-          <section className="panel chart-panel">
-            <div className="panel-heading">
+        <section className="panel chat-panel" aria-label="AI assistant">
+          <div className="panel-heading">
+            <div>
+              <span>AI Assistant</span>
+              <strong>Portfolio copilot</strong>
+            </div>
+          </div>
+          <div className="chat-log" data-testid="chat-log">
+            {messages.map((message, index) => (
+              <article className={`chat-message ${message.role}`} key={`${message.role}-${index}`}>
+                <p>{message.content}</p>
+                {message.details?.length ? (
+                  <ul>
+                    {message.details.map((detail) => (
+                      <li key={detail}>{detail}</li>
+                    ))}
+                  </ul>
+                ) : null}
+              </article>
+            ))}
+            {chatLoading ? <article className="chat-message assistant loading">Thinking...</article> : null}
+          </div>
+          <form className="chat-form" onSubmit={submitChat}>
+            <textarea aria-label="Assistant message" value={chatInput} onChange={(event) => setChatInput(event.target.value)} placeholder="Ask for analysis or an action..." />
+            <button type="submit" disabled={chatLoading}>
+              Send
+            </button>
+          </form>
+        </section>
+
+        <section className="right-rail">
+          <section className="panel trade-panel" aria-label="Trade ticket">
+            <div className="panel-heading compact-heading">
               <div>
-                <span>Selected Ticker</span>
+                <span>Trade Ticket</span>
                 <strong>{selectedTicker}</strong>
               </div>
-              <div className="chart-price">
-                {selectedItem ? currencyFormatter.format(selectedItem.current_price) : '--'}
-                <small className={percentClass(selectedItem?.change_percent)}>{toNumber(selectedItem?.change_percent).toFixed(2)}%</small>
+              <div className="quote-pill">
+                <strong>{selectedItem ? currencyFormatter.format(selectedItem.current_price) : '--'}</strong>
+                <small className={percentClass(selectedItem?.change_percent)}>
+                  {selectedDirection.toUpperCase()} {toNumber(selectedItem?.change_percent).toFixed(2)}%
+                </small>
               </div>
             </div>
-            <LineChart values={selectedSeries} emptyLabel="Waiting for live ticks" />
-          </section>
-
-          <section className="panel trade-panel">
             <div className="trade-controls">
               <label>
                 <span>Ticker</span>
@@ -582,22 +611,7 @@ export default function TradingWorkstation() {
             ) : null}
           </section>
 
-          <section className="portfolio-grid">
-            <div className="panel">
-              <div className="panel-heading">
-                <span>Portfolio Heatmap</span>
-              </div>
-              <PortfolioHeatmap positions={portfolio.positions} totalValue={portfolio.total_value} />
-            </div>
-            <div className="panel">
-              <div className="panel-heading">
-                <span>P&L History</span>
-              </div>
-              <LineChart values={historyValues} labels={historyLabels} tone="yellow" emptyLabel="No snapshots yet" />
-            </div>
-          </section>
-
-          <section className="panel positions-panel">
+          <section className="panel positions-panel" aria-label="Positions">
             <div className="panel-heading">
               <span>Positions</span>
             </div>
@@ -629,36 +643,37 @@ export default function TradingWorkstation() {
             </div>
           </section>
         </section>
+      </section>
 
-        <aside className="panel chat-panel">
-          <div className="panel-heading">
-            <div>
-              <span>AI Assistant</span>
-              <strong>Portfolio copilot</strong>
-            </div>
+      <section className="detail-drawers" aria-label="Market details and analytics">
+        <details className="panel disclosure-panel">
+          <summary>
+            <span>Market Detail</span>
+            <strong>{selectedTicker}</strong>
+            <em>{selectedItem ? currencyFormatter.format(selectedItem.current_price) : '--'}</em>
+          </summary>
+          <div className="chart-panel">
+            <LineChart values={selectedSeries} emptyLabel="Waiting for live ticks" />
           </div>
-          <div className="chat-log" data-testid="chat-log">
-            {messages.map((message, index) => (
-              <article className={`chat-message ${message.role}`} key={`${message.role}-${index}`}>
-                <p>{message.content}</p>
-                {message.details?.length ? (
-                  <ul>
-                    {message.details.map((detail) => (
-                      <li key={detail}>{detail}</li>
-                    ))}
-                  </ul>
-                ) : null}
-              </article>
-            ))}
-            {chatLoading ? <article className="chat-message assistant loading">Thinking...</article> : null}
+        </details>
+
+        <details className="panel disclosure-panel">
+          <summary>
+            <span>Portfolio Analytics</span>
+            <strong>Heatmap and P&L History</strong>
+            <em>{portfolio.positions.length} positions</em>
+          </summary>
+          <div className="analytics-grid">
+            <section className="analytics-card">
+              <div className="subheading">Portfolio Heatmap</div>
+              <PortfolioHeatmap positions={portfolio.positions} totalValue={portfolio.total_value} />
+            </section>
+            <section className="analytics-card">
+              <div className="subheading">P&L History</div>
+              <LineChart values={historyValues} labels={historyLabels} tone="yellow" emptyLabel="No snapshots yet" />
+            </section>
           </div>
-          <form className="chat-form" onSubmit={submitChat}>
-            <textarea aria-label="Assistant message" value={chatInput} onChange={(event) => setChatInput(event.target.value)} placeholder="Ask for analysis or an action..." />
-            <button type="submit" disabled={chatLoading}>
-              Send
-            </button>
-          </form>
-        </aside>
+        </details>
       </section>
     </main>
   );
