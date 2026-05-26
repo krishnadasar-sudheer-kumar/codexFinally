@@ -10,6 +10,7 @@ dependencies = [
     "numpy>=2.0.0",
     "massive>=1.0.0",
     "rich>=13.0.0",
+    "openai>=2.38.0",
 ]
 
 [project.optional-dependencies]
@@ -55,4 +56,9 @@ exclude_lines = [
     "raise NotImplementedError",
     "if __name__ == .__main__.:",
     "if TYPE_CHECKING:",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
 ]

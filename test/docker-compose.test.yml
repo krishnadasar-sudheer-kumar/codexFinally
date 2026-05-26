@@ -1,0 +1,32 @@
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: finally:test
+    environment:
+      APP_PORT: "8000"
+      DB_PATH: /app/db/finally.db
+      LLM_MOCK: "true"
+      OPENAI_API_KEY: test-openai-key
+      OPENAI_DEFAULT_MODEL: gpt-5.5
+      MASSIVE_API_KEY: ""
+    ports:
+      - "${TEST_APP_PORT:-8001}:8000"
+    volumes:
+      - finally-test-data:/app/db
+
+  playwright:
+    image: mcr.microsoft.com/playwright:v1.46.1-jammy
+    working_dir: /workspace/test
+    depends_on:
+      - app
+    environment:
+      BASE_URL: http://app:8000
+      CI: "true"
+    volumes:
+      - ..:/workspace
+    command: /bin/sh -lc "npm install && npx playwright test"
+
+volumes:
+  finally-test-data:
