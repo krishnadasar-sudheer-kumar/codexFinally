@@ -41,7 +41,7 @@ button {
 
 .workstation {
   min-height: 100vh;
-  padding: 16px;
+  padding: 10px 14px 14px;
   background:
     linear-gradient(180deg, rgba(32, 157, 215, 0.08), transparent 280px),
     var(--bg);
@@ -49,12 +49,12 @@ button {
 
 .topbar {
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) auto;
+  grid-template-columns: minmax(180px, 0.66fr) minmax(520px, 1.34fr);
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   border: 1px solid var(--line);
   background: rgba(20, 25, 37, 0.96);
-  padding: 12px 14px;
+  padding: 8px 10px;
 }
 
 .eyebrow,
@@ -70,14 +70,15 @@ label span,
 }
 
 h1 {
-  margin: 2px 0 0;
-  font-size: 1.35rem;
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.1;
 }
 
 .top-metrics {
   display: grid;
-  grid-template-columns: repeat(4, minmax(118px, auto));
-  gap: 8px;
+  grid-template-columns: repeat(4, minmax(112px, 1fr));
+  gap: 6px;
 }
 
 .metric,
@@ -85,14 +86,14 @@ h1 {
   min-width: 0;
   border: 1px solid var(--line);
   background: var(--panel-2);
-  padding: 8px 10px;
+  padding: 6px 8px;
 }
 
 .metric strong,
 .connection strong {
   display: block;
-  margin-top: 3px;
-  font-size: 1rem;
+  margin-top: 2px;
+  font-size: 0.88rem;
   white-space: nowrap;
 }
 
@@ -126,10 +127,10 @@ h1 {
 
 .command-grid {
   display: grid;
-  grid-template-columns: minmax(280px, 340px) minmax(420px, 1.24fr) minmax(360px, 0.92fr);
-  grid-template-areas: "watch chat rail";
+  grid-template-columns: minmax(250px, 300px) minmax(520px, 1fr) minmax(340px, 390px);
+  grid-template-areas: "watch center chat";
   gap: 12px;
-  margin-top: 12px;
+  margin-top: 10px;
   align-items: stretch;
 }
 
@@ -140,12 +141,12 @@ h1 {
 }
 
 .panel-heading {
-  min-height: 50px;
+  min-height: 42px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 10px 12px;
+  padding: 8px 10px;
   border-bottom: 1px solid var(--line);
 }
 
@@ -155,36 +156,36 @@ h1 {
 }
 
 .compact-heading {
-  min-height: 58px;
+  min-height: 50px;
 }
 
 .watchlist-panel {
   grid-area: watch;
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
-  max-height: calc(100vh - 120px);
+  height: min(560px, calc(100vh - 92px));
 }
 
 .chat-panel {
   grid-area: chat;
   display: grid;
-  grid-template-rows: auto minmax(320px, 1fr) auto;
-  min-height: calc(100vh - 120px);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  height: calc(100vh - 92px);
 }
 
-.right-rail {
-  grid-area: rail;
+.center-rail {
+  grid-area: center;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   gap: 12px;
-  min-height: calc(100vh - 120px);
+  min-height: calc(100vh - 92px);
 }
 
 .add-form {
   display: grid;
-  grid-template-columns: 1fr 72px;
-  gap: 8px;
-  padding: 10px;
+  grid-template-columns: 1fr 58px;
+  gap: 6px;
+  padding: 8px;
   border-bottom: 1px solid var(--line);
 }
 
@@ -221,15 +222,15 @@ textarea:focus {
 
 .watch-row {
   display: grid;
-  grid-template-columns: minmax(58px, 0.72fr) minmax(72px, 0.9fr) minmax(54px, 0.6fr) minmax(52px, 0.62fr) 22px;
+  grid-template-columns: minmax(55px, 0.72fr) minmax(68px, 0.78fr) minmax(50px, 0.58fr) minmax(42px, 0.42fr) 20px;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
   width: 100%;
   border: 0;
   border-bottom: 1px solid var(--line-soft);
   background: transparent;
   color: var(--text);
-  padding: 9px 10px;
+  padding: 7px 8px;
   text-align: left;
   transition: background 540ms ease, border-color 160ms ease;
 }
@@ -254,19 +255,19 @@ textarea:focus {
 
 .ticker-cell strong,
 .table-row strong {
-  font-size: 0.94rem;
+  font-size: 0.88rem;
 }
 
 .ticker-cell small {
   display: block;
   margin-top: 2px;
   color: var(--muted);
-  font-size: 0.64rem;
+  font-size: 0.6rem;
 }
 
 .price-cell,
 .change-cell {
-  font-size: 0.88rem;
+  font-size: 0.78rem;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -287,7 +288,7 @@ textarea:focus {
 
 .sparkline {
   width: 100%;
-  height: 26px;
+  height: 20px;
   display: block;
 }
 
@@ -331,7 +332,7 @@ label {
   border: 0;
   color: #07100c;
   font-weight: 900;
-  min-height: 40px;
+  min-height: 42px;
 }
 
 .trade-controls .buy {
@@ -366,7 +367,7 @@ label {
   display: grid;
   grid-template-columns: minmax(66px, 0.78fr) minmax(56px, 0.56fr) minmax(74px, 0.78fr) minmax(74px, 0.78fr) minmax(92px, 0.92fr) minmax(96px, 0.9fr) minmax(48px, 0.5fr);
   gap: 10px;
-  min-width: 660px;
+  min-width: 620px;
   padding: 9px 12px;
   align-items: center;
   border-bottom: 1px solid var(--line-soft);
@@ -454,7 +455,7 @@ label {
 }
 
 .chat-form textarea {
-  min-height: 112px;
+  min-height: 132px;
   resize: vertical;
 }
 
@@ -622,20 +623,24 @@ label {
   }
 
   .command-grid {
-    grid-template-columns: minmax(280px, 340px) minmax(420px, 1fr);
+    grid-template-columns: minmax(260px, 300px) minmax(420px, 1fr);
     grid-template-areas:
-      "watch chat"
-      "watch rail";
+      "watch center"
+      "chat chat";
   }
 
   .chat-panel {
-    min-height: 500px;
+    height: 520px;
+    min-height: 0;
   }
 
-  .right-rail,
+  .center-rail,
   .watchlist-panel {
     min-height: 0;
-    max-height: none;
+  }
+
+  .watchlist-panel {
+    height: 560px;
   }
 }
 
@@ -652,12 +657,14 @@ label {
     grid-template-columns: 1fr;
     grid-template-areas:
       "chat"
-      "rail"
+      "center"
       "watch";
   }
 
   .chat-panel {
-    min-height: 480px;
+    height: auto;
+    min-height: 420px;
+    grid-template-rows: auto 260px auto;
   }
 
   .watchlist-panel {

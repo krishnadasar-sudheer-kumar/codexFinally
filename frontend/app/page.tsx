@@ -544,37 +544,7 @@ export default function TradingWorkstation() {
           </div>
         </aside>
 
-        <section className="panel chat-panel" aria-label="AI assistant">
-          <div className="panel-heading">
-            <div>
-              <span>AI Assistant</span>
-              <strong>Portfolio copilot</strong>
-            </div>
-          </div>
-          <div className="chat-log" data-testid="chat-log">
-            {messages.map((message, index) => (
-              <article className={`chat-message ${message.role}`} key={`${message.role}-${index}`}>
-                <p>{message.content}</p>
-                {message.details?.length ? (
-                  <ul>
-                    {message.details.map((detail) => (
-                      <li key={detail}>{detail}</li>
-                    ))}
-                  </ul>
-                ) : null}
-              </article>
-            ))}
-            {chatLoading ? <article className="chat-message assistant loading">Thinking...</article> : null}
-          </div>
-          <form className="chat-form" onSubmit={submitChat}>
-            <textarea aria-label="Assistant message" value={chatInput} onChange={(event) => setChatInput(event.target.value)} placeholder="Ask for analysis or an action..." />
-            <button type="submit" disabled={chatLoading}>
-              Send
-            </button>
-          </form>
-        </section>
-
-        <section className="right-rail">
+        <section className="center-rail">
           <section className="panel trade-panel" aria-label="Trade ticket">
             <div className="panel-heading compact-heading">
               <div>
@@ -642,6 +612,36 @@ export default function TradingWorkstation() {
               )}
             </div>
           </section>
+        </section>
+
+        <section className="panel chat-panel" aria-label="AI assistant">
+          <div className="panel-heading">
+            <div>
+              <span>AI Assistant</span>
+              <strong>Portfolio copilot</strong>
+            </div>
+          </div>
+          <div className="chat-log" data-testid="chat-log">
+            {messages.map((message, index) => (
+              <article className={`chat-message ${message.role}`} key={`${message.role}-${index}`}>
+                <p>{message.content}</p>
+                {message.details?.length ? (
+                  <ul>
+                    {message.details.map((detail) => (
+                      <li key={detail}>{detail}</li>
+                    ))}
+                  </ul>
+                ) : null}
+              </article>
+            ))}
+            {chatLoading ? <article className="chat-message assistant loading">Thinking...</article> : null}
+          </div>
+          <form className="chat-form" onSubmit={submitChat}>
+            <textarea aria-label="Assistant message" value={chatInput} onChange={(event) => setChatInput(event.target.value)} placeholder="Ask for analysis or an action..." />
+            <button type="submit" disabled={chatLoading}>
+              Send
+            </button>
+          </form>
         </section>
       </section>
 
