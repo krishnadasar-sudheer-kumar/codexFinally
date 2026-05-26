@@ -1,4 +1,4 @@
-# Backend — Developer Guide
+# Backend - Developer Guide
 
 ## Project Setup
 
@@ -17,19 +17,19 @@ from app.market import PriceCache, PriceUpdate, MarketDataSource, create_market_
 
 ### Core Types
 
-- **`PriceUpdate`** — Immutable dataclass: `ticker`, `price`, `previous_price`, `timestamp`, plus properties `change`, `change_percent`, `direction` ("up"/"down"/"flat"), and `to_dict()` for JSON serialization.
+- **`PriceUpdate`** - Immutable dataclass: `ticker`, `price`, `previous_price`, `timestamp`, plus properties `change`, `change_percent`, `direction` ("up"/"down"/"flat"), and `to_dict()` for JSON serialization.
 
-- **`PriceCache`** — Thread-safe in-memory store. Key methods:
+- **`PriceCache`** - Thread-safe in-memory store. Key methods:
   - `update(ticker, price, timestamp=None) -> PriceUpdate`
   - `get(ticker) -> PriceUpdate | None`
   - `get_price(ticker) -> float | None`
   - `get_all() -> dict[str, PriceUpdate]`
   - `remove(ticker)`
-  - `version` property — monotonic counter, increments on every update (for SSE change detection)
+  - `version` property - monotonic counter, increments on every update (for SSE change detection)
 
-- **`MarketDataSource`** — Abstract interface implemented by `SimulatorDataSource` and `MassiveDataSource`. Lifecycle: `start(tickers)` -> `add_ticker()` / `remove_ticker()` -> `stop()`.
+- **`MarketDataSource`** - Abstract interface implemented by `SimulatorDataSource` and `MassiveDataSource`. Lifecycle: `start(tickers)` -> `add_ticker()` / `remove_ticker()` -> `stop()`.
 
-- **`create_market_data_source(cache)`** — Factory. Returns `MassiveDataSource` if `MASSIVE_API_KEY` is set, otherwise `SimulatorDataSource`.
+- **`create_market_data_source(cache)`** - Factory. Returns `MassiveDataSource` if `MASSIVE_API_KEY` is set, otherwise `SimulatorDataSource`.
 
 ### SSE Streaming
 

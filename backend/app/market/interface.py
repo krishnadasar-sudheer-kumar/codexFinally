@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
+from .models import MarketStatus
+
 
 class MarketDataSource(ABC):
     """Contract for market data providers.
@@ -55,3 +57,7 @@ class MarketDataSource(ABC):
     @abstractmethod
     def get_tickers(self) -> list[str]:
         """Return the current list of actively tracked tickers."""
+
+    @abstractmethod
+    def get_status(self) -> MarketStatus:
+        """Return current source mode and health metadata."""

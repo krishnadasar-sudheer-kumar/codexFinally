@@ -15,7 +15,7 @@ This is the capstone project for an agentic AI coding course. It is built entire
 The user runs a single Docker command (or a provided start script). A browser opens to `http://localhost:8000`. No login, no signup. They immediately see:
 
 - A watchlist of 10 default tickers with live-updating prices in a grid
-- $10,000 in virtual cash
+- $100,000 in virtual cash
 - A dark, data-rich trading terminal aesthetic
 - An AI chat panel ready to assist
 
@@ -66,7 +66,7 @@ The user runs a single Docker command (or a provided start script). A browser op
 - **Backend**: FastAPI (Python), managed as a `uv` project
 - **Database**: SQLite, single file at `db/finally.db`, volume-mounted for persistence
 - **Real-time data**: Server-Sent Events (SSE) — simpler than WebSockets, one-way server→client push, works everywhere
-- **AI integration**: LiteLLM → OpenRouter (Cerebras for fast inference), with structured outputs for trade execution
+- **AI integration**: OpenAI LLM integration using `OPENAI_DEFAULT_MODEL` (default `gpt-5.5`) with structured outputs for trade execution
 - **Market data**: Environment-variable driven — simulator by default, real data via Massive API if key provided
 
 ### Why These Choices
@@ -121,8 +121,11 @@ finally/
 ## 5. Environment Variables
 
 ```bash
-# Required: OpenRouter API key for LLM chat functionality
-OPENROUTER_API_KEY=your-openrouter-api-key-here
+# Required: OpenAI API key for LLM chat functionality
+
+OPENAI_API_KEY=your-openai-api-key-here
+OPENAI_DEFAULT_MODEL=gpt-5.5
+
 
 # Optional: Massive (Polygon.io) API key for real market data
 # If not set, the built-in market simulator is used (recommended for most users)
@@ -142,6 +145,8 @@ LLM_MOCK=false
 ---
 
 ## 6. Market Data
+
+Section 6 is the source of truth for the market data contract. Use `planning/MARKET_DATA_SUMMARY.md` and the archived market data documents as references only if implementation progress creates additional design or implementation conflict.
 
 ### Two Implementations, One Interface
 
@@ -197,7 +202,7 @@ All tables include a `user_id` column defaulting to `"default"`. This is hardcod
 
 **users_profile** — User state (cash balance)
 - `id` TEXT PRIMARY KEY (default: `"default"`)
-- `cash_balance` REAL (default: `10000.0`)
+- `cash_balance` REAL (default: `100000.0`)
 - `created_at` TEXT (ISO timestamp)
 
 **watchlist** — Tickers the user is watching
@@ -225,7 +230,7 @@ All tables include a `user_id` column defaulting to `"default"`. This is hardcod
 - `price` REAL
 - `executed_at` TEXT (ISO timestamp)
 
-**portfolio_snapshots** — Portfolio value over time (for P&L chart). Recorded every 30 seconds by a background task, and immediately after each trade execution.
+**portfolio_snapshots** — Portfolio value over time (for P&L chart). One initial cash-only snapshot is created when the default user profile is seeded, then snapshots are recorded every 30 seconds by a background task and immediately after each trade execution.
 - `id` TEXT PRIMARY KEY (UUID)
 - `user_id` TEXT (default: `"default"`)
 - `total_value` REAL
@@ -241,8 +246,13 @@ All tables include a `user_id` column defaulting to `"default"`. This is hardcod
 
 ### Default Seed Data
 
-- One user profile: `id="default"`, `cash_balance=10000.0`
+- One user profile: `id="default"`, `cash_balance=100000.0`
 - Ten watchlist entries: AAPL, GOOGL, MSFT, AMZN, TSLA, NVDA, META, JPM, V, NFLX
+- One initial portfolio snapshot: total value `100000.0`, representing the starting cash-only portfolio
+
+### Timestamp Convention
+
+All database timestamps and API timestamps are UTC ISO 8601 strings. Frontend charts should treat server timestamps as UTC and only localize them for display.
 
 ---
 
@@ -277,13 +287,33 @@ All tables include a `user_id` column defaulting to `"default"`. This is hardcod
 |--------|------|-------------|
 | GET | `/api/health` | Health check (for Docker/deployment) |
 
+### API Contract Notes
+
+Section 8 endpoint tables define the user-facing data elements for each endpoint. Backend implementations should use these canonical JSON field names unless a later planning update supersedes them.
+
+- `GET /api/portfolio` returns `{cash_balance, total_value, unrealized_pnl, positions}` where each position includes `{ticker, quantity, avg_cost, current_price, market_value, unrealized_pnl, change_percent}`.
+- `POST /api/portfolio/trade` accepts `{ticker, quantity, side}` where `quantity` is a positive number and fractional shares are supported. It returns `{trade, portfolio}` on success and `{error, details}` on validation failure.
+- `GET /api/portfolio/history` returns `{snapshots}` where each snapshot includes `{total_value, recorded_at}`. The series includes the initial cash-only snapshot.
+- `GET /api/watchlist` returns `{items}` where each item includes `{ticker, current_price, previous_price, change_percent, direction, timestamp}`.
+- `POST /api/watchlist` accepts `{ticker}` and returns `{item, already_exists}`. Duplicate adds must not create duplicate rows.
+- `DELETE /api/watchlist/{ticker}` returns `{ticker, removed}`.
+- `POST /api/chat` accepts `{message}` and returns `{message, trades, watchlist_changes, errors}`. `errors` contains any failed trade or watchlist action attempted by the LLM.
+
+### Validation and Guardrails
+
+Guardrails apply equally to manual user actions and LLM-generated actions.
+
+- Trade validation rejects unsupported sides, non-positive quantities, invalid tickers, insufficient cash for buys, and insufficient shares for sells.
+- Fractional shares are supported in both the backend schema and trade UI.
+- Watchlist validation rejects unsupported, invalid, or delisted tickers. Duplicate watchlist adds are idempotent and return the existing item with `already_exists=true`.
+- AI trade guardrails should include configurable limits for maximum order value and maximum resulting position concentration. Exact default thresholds should be set in backend configuration during implementation.
+- Every failed guardrail check returns a structured error suitable for display in the UI and for inclusion in the chat response.
+
 ---
 
 ## 9. LLM Integration
 
-When writing code to make calls to LLMs, use cerebras-inference skill to use LiteLLM via OpenRouter to the `openrouter/openai/gpt-oss-120b` model with Cerebras as the inference provider. Structured Outputs should be used to interpret the results.
-
-There is an OPENROUTER_API_KEY in the .env file in the project root.
+Structured Outputs should be used to interpret the results. Use `gpt-5.5` as the default model for all LLM integration.
 
 ### How It Works
 
@@ -292,11 +322,11 @@ When the user sends a chat message, the backend:
 1. Loads the user's current portfolio context (cash, positions with P&L, watchlist with live prices, total portfolio value)
 2. Loads recent conversation history from the `chat_messages` table
 3. Constructs a prompt with a system message, portfolio context, conversation history, and the user's new message
-4. Calls the LLM via LiteLLM → OpenRouter, requesting structured output, using the cerebras-inference skill
+4. Calls the LLM, requesting structured output.
 5. Parses the complete structured JSON response
 6. Auto-executes any trades or watchlist changes specified in the response
 7. Stores the message and executed actions in `chat_messages`
-8. Returns the complete JSON response to the frontend (no token-by-token streaming — Cerebras inference is fast enough that a loading indicator is sufficient)
+8. Returns the complete JSON response to the frontend.
 
 ### Structured Output Schema
 
@@ -320,12 +350,12 @@ The LLM is instructed to respond with JSON matching this schema:
 
 ### Auto-Execution
 
-Trades specified by the LLM execute automatically — no confirmation dialog. This is a deliberate design choice:
+Trades specified by the LLM execute automatically after backend validation and guardrail checks — no confirmation dialog. This is a deliberate design choice:
 - It's a simulated environment with fake money, so the stakes are zero
 - It creates an impressive, fluid demo experience
 - It demonstrates agentic AI capabilities — the core theme of the course
 
-If a trade fails validation (e.g., insufficient cash), the error is included in the chat response so the LLM can inform the user.
+If a trade or watchlist action fails validation (e.g., insufficient cash, unsupported ticker, duplicate watchlist item), the structured error is included in the chat response so the assistant can inform the user.
 
 ### System Prompt Guidance
 
@@ -339,7 +369,7 @@ The LLM should be prompted as "FinAlly, an AI trading assistant" with instructio
 
 ### LLM Mock Mode
 
-When `LLM_MOCK=true`, the backend returns deterministic mock responses instead of calling OpenRouter. This enables:
+When `LLM_MOCK=true`, the backend returns deterministic mock responses instead of calling LLM. This enables:
 - Fast, free, reproducible E2E tests
 - Development without an API key
 - CI/CD pipelines
@@ -352,19 +382,19 @@ When `LLM_MOCK=true`, the backend returns deterministic mock responses instead o
 
 The frontend is a single-page application with a dense, terminal-inspired layout. The specific component architecture and layout system is up to the Frontend Engineer, but the UI should include these elements:
 
-- **Watchlist panel** — grid/table of watched tickers with: ticker symbol, current price (flashing green/red on change), daily change %, and a sparkline mini-chart (accumulated from SSE since page load)
+- **Watchlist panel** — grid/table of watched tickers with: ticker symbol, current price (flashing green/red on change), simulator session change % to start, and a sparkline mini-chart (accumulated from SSE since page load). True market-day change and provider-backed change modes are future configurable enhancements.
 - **Main chart area** — larger chart for the currently selected ticker, with at minimum price over time. Clicking a ticker in the watchlist selects it here.
 - **Portfolio heatmap** — treemap visualization where each rectangle is a position, sized by portfolio weight, colored by P&L (green = profit, red = loss)
 - **P&L chart** — line chart showing total portfolio value over time, using data from `portfolio_snapshots`
 - **Positions table** — tabular view of all positions: ticker, quantity, avg cost, current price, unrealized P&L, % change
-- **Trade bar** — simple input area: ticker field, quantity field, buy button, sell button. Market orders, instant fill.
+- **Trade bar** — simple input area: ticker field, fractional quantity field, buy button, sell button. Market orders, instant fill after validation.
 - **AI chat panel** — docked/collapsible sidebar. Message input, scrolling conversation history, loading indicator while waiting for LLM response. Trade executions and watchlist changes shown inline as confirmations.
 - **Header** — portfolio total value (updating live), connection status indicator, cash balance
 
 ### Technical Notes
 
 - Use `EventSource` for SSE connection to `/api/stream/prices`
-- Canvas-based charting library preferred (Lightweight Charts or Recharts) for performance
+- Lightweight Charts is the default charting library for price, sparkline, and P&L time-series charts. Use a simple treemap implementation or a focused charting helper for the portfolio heatmap if needed.
 - Price flash effect: on receiving a new price, briefly apply a CSS class with background color transition, then remove it
 - All API calls go to the same origin (`/api/*`) — no CORS configuration needed
 - Tailwind CSS for styling with a custom dark theme
@@ -384,12 +414,12 @@ Stage 2: Python 3.12 slim
   - Install uv
   - Copy backend/
   - uv sync (install Python dependencies from lockfile)
-  - Copy frontend build output into a static/ directory
+  - Copy frontend/out into /app/static
   - Expose port 8000
   - CMD: uvicorn serving FastAPI app
 ```
 
-FastAPI serves the static frontend files and all API routes on port 8000.
+FastAPI serves the static frontend files and all API routes on port 8000. The Next.js static export output directory is `frontend/out`; the Docker build copies it to `/app/static`; FastAPI mounts `/app/static` after the `/api/*` routes and serves the SPA at `/*` with an `index.html` fallback.
 
 ### Docker Volume
 
@@ -429,15 +459,15 @@ The container is designed to deploy to AWS App Runner, Render, or any container 
 
 **Backend (pytest)**:
 - Market data: simulator generates valid prices, GBM math is correct, Massive API response parsing works, both implementations conform to the abstract interface
-- Portfolio: trade execution logic, P&L calculations, edge cases (selling more than owned, buying with insufficient cash, selling at a loss)
-- LLM: structured output parsing handles all valid schemas, graceful handling of malformed responses, trade validation within chat flow
-- API routes: correct status codes, response shapes, error handling
+- Portfolio: trade execution logic, P&L calculations, initial cash-only snapshot, edge cases (selling more than owned, buying with insufficient cash, selling at a loss)
+- LLM: structured output parsing handles all valid schemas, graceful handling of malformed responses, trade and watchlist guardrails within chat flow
+- API routes: correct status codes, response shapes, UTC timestamps, error handling
 
 **Frontend (React Testing Library or similar)**:
 - Component rendering with mock data
 - Price flash animation triggers correctly on price changes
 - Watchlist CRUD operations
-- Portfolio display calculations
+- Portfolio display calculations, including fractional quantities
 - Chat message rendering and loading state
 
 ### E2E Tests (in `test/`)
@@ -447,10 +477,40 @@ The container is designed to deploy to AWS App Runner, Render, or any container 
 **Environment**: Tests run with `LLM_MOCK=true` by default for speed and determinism.
 
 **Key Scenarios**:
-- Fresh start: default watchlist appears, $10k balance shown, prices are streaming
+- Fresh start: default watchlist appears, $100k balance shown, prices are streaming
 - Add and remove a ticker from the watchlist
+- Invalid, unsupported, delisted, and duplicate ticker watchlist actions surface clear guardrail feedback
 - Buy shares: cash decreases, position appears, portfolio updates
 - Sell shares: cash increases, position updates or disappears
+- Fractional-share trade succeeds when valid
 - Portfolio visualization: heatmap renders with correct colors, P&L chart has data points
 - AI chat (mocked): send a message, receive a response, trade execution appears inline
+- AI chat (mocked): invalid trade or watchlist action returns structured error feedback without mutating portfolio state
 - SSE resilience: disconnect and verify reconnection
+
+---
+
+## 13. Implementation Decisions and Build Order
+
+### Decisions Folded Into the Plan
+
+- Section 6 remains the canonical market data contract. `planning/MARKET_DATA_SUMMARY.md` is a reference for completed implementation details and conflict resolution.
+- `gpt-5.5` is the default model for all LLM integration.
+- Guardrails are required for manual and AI-generated trades and watchlist changes.
+- Simulator session change % is the initial watchlist change metric. True market-day change and provider-backed modes are future enhancements.
+- The initial cash-only portfolio snapshot is required.
+- Fractional shares are supported in both backend trade logic and the frontend trade UI.
+
+### MVP Build Order
+
+1. Market data foundation: already completed; keep Section 6 as the contract.
+2. Backend core: database initialization, API contracts, portfolio math, validation, guardrails, snapshots, and SSE integration.
+3. Frontend core: watchlist stream, selected ticker chart, trade bar, positions table, cash, and portfolio totals.
+4. LLM integration: structured outputs, mock mode, chat persistence, and guarded action execution.
+5. Portfolio visualization polish: heatmap and P&L chart once snapshot and position math are stable.
+6. End-to-end hardening: Docker run path, start/stop scripts, Playwright tests, and SSE reconnection behavior.
+
+### Remaining Follow-Ups
+
+- Set concrete default thresholds for maximum order value and maximum resulting position concentration.
+- Decide whether optional cloud deployment and Terraform remain stretch goals after the local Docker experience is stable.

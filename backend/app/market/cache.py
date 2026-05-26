@@ -6,6 +6,7 @@ import time
 from threading import Lock
 
 from .models import PriceUpdate
+from .utils import normalize_ticker
 
 
 class PriceCache:
@@ -26,15 +27,16 @@ class PriceCache:
         Automatically computes direction and change from the previous price.
         If this is the first update for the ticker, previous_price == price (direction='flat').
         """
+        ticker = normalize_ticker(ticker)
         with self._lock:
             ts = timestamp or time.time()
             prev = self._prices.get(ticker)
-            previous_price = prev.price if prev else price
+            previous_price = prev.price if prev else float(price)
 
             update = PriceUpdate(
                 ticker=ticker,
-                price=round(price, 2),
-                previous_price=round(previous_price, 2),
+                price=round(float(price), 2),
+                previous_price=round(float(previous_price), 2),
                 timestamp=ts,
             )
             self._prices[ticker] = update
@@ -44,7 +46,7 @@ class PriceCache:
     def get(self, ticker: str) -> PriceUpdate | None:
         """Get the latest price for a single ticker, or None if unknown."""
         with self._lock:
-            return self._prices.get(ticker)
+            return self._prices.get(normalize_ticker(ticker))
 
     def get_all(self) -> dict[str, PriceUpdate]:
         """Snapshot of all current prices. Returns a shallow copy."""
@@ -59,12 +61,15 @@ class PriceCache:
     def remove(self, ticker: str) -> None:
         """Remove a ticker from the cache (e.g., when removed from watchlist)."""
         with self._lock:
-            self._prices.pop(ticker, None)
+            removed = self._prices.pop(normalize_ticker(ticker), None)
+            if removed is not None:
+                self._version += 1
 
     @property
     def version(self) -> int:
         """Current version counter. Useful for SSE change detection."""
-        return self._version
+        with self._lock:
+            return self._version
 
     def __len__(self) -> int:
         with self._lock:
@@ -72,4 +77,4 @@ class PriceCache:
 
     def __contains__(self, ticker: str) -> bool:
         with self._lock:
-            return ticker in self._prices
+            return normalize_ticker(ticker) in self._prices

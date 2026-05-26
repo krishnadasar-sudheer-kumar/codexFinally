@@ -5,6 +5,7 @@ import asyncio
 import pytest
 
 from app.market.cache import PriceCache
+from app.market.models import MarketSourceMode
 from app.market.simulator import SimulatorDataSource
 
 
@@ -135,4 +136,23 @@ class TestSimulatorDataSource:
 
         # Just verify it starts and stops cleanly
         await asyncio.sleep(0.2)
+        await source.stop()
+
+    async def test_seed_prices_override_defaults(self):
+        """Test source seeds the cache from provided EOD prices."""
+        cache = PriceCache()
+        source = SimulatorDataSource(
+            price_cache=cache,
+            update_interval=0.1,
+            seed_prices={"AAPL": 188.42},
+            source_mode=MarketSourceMode.MASSIVE_EOD_SIMULATED,
+        )
+
+        await source.start(["AAPL"])
+
+        assert cache.get_price("AAPL") == 188.42
+        assert source.get_status().mode == MarketSourceMode.MASSIVE_EOD_SIMULATED
+        assert source.get_status().healthy is True
+        assert source.get_status().last_success_at is not None
+
         await source.stop()

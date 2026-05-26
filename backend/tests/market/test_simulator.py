@@ -129,3 +129,21 @@ class TestGBMSimulator:
         if '.' in price_str:
             decimal_part = price_str.split('.')[1]
             assert len(decimal_part) <= 2
+
+    def test_full_default_watchlist_builds_cholesky(self):
+        """Test the full default watchlist has a valid correlation matrix."""
+        tickers = list(SEED_PRICES)
+        sim = GBMSimulator(tickers=tickers)
+        assert sim.get_tickers() == tickers
+        assert sim._cholesky is not None
+
+    def test_external_seed_overrides_default(self):
+        """Test EOD seed prices override static defaults."""
+        sim = GBMSimulator(tickers=["AAPL"], seed_prices={"AAPL": 188.42})
+        assert sim.get_price("AAPL") == 188.42
+
+    def test_ticker_normalization_and_deduplication(self):
+        """Test ticker input is normalized once."""
+        sim = GBMSimulator(tickers=[" aapl ", "AAPL", "msft"])
+        assert sim.get_tickers() == ["AAPL", "MSFT"]
+        assert sim.get_price("aapl") == SEED_PRICES["AAPL"]

@@ -7,7 +7,7 @@ Built entirely by coding agents as a capstone project for an agentic AI coding c
 ## Features
 
 - **Live price streaming** via SSE with green/red flash animations
-- **Simulated portfolio** — $10k virtual cash, market orders, instant fills
+- **Simulated portfolio** — $100k virtual cash, market orders, instant fills
 - **Portfolio visualizations** — heatmap (treemap), P&L chart, positions table
 - **AI chat assistant** — analyzes holdings, suggests and auto-executes trades
 - **Watchlist management** — track tickers manually or via AI
@@ -28,7 +28,7 @@ Single Docker container serving everything on port 8000:
 ```bash
 # Clone and configure
 cp .env.example .env
-# Add your OPENROUTER_API_KEY to .env
+# Add your OPENAI_API_KEY to .env
 
 # Run with Docker
 docker build -t finally .
@@ -41,7 +41,7 @@ docker run -v finally-data:/app/db -p 8000:8000 --env-file .env finally
 
 | Variable | Required | Description |
 |---|---|---|
-| `OPENROUTER_API_KEY` | Yes | OpenRouter API key for AI chat |
+| `OPENAI_API_KEY` | Yes | OpenAI API key for AI chat |
 | `MASSIVE_API_KEY` | No | Massive (Polygon.io) key for real market data; omit to use simulator |
 | `LLM_MOCK` | No | Set `true` for deterministic mock LLM responses (testing) |
 

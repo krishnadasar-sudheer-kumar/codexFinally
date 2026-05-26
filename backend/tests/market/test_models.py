@@ -2,7 +2,7 @@
 
 import pytest
 
-from app.market.models import PriceUpdate
+from app.market.models import MarketSourceMode, MarketStatus, PriceUpdate
 
 
 class TestPriceUpdate:
@@ -75,3 +75,19 @@ class TestPriceUpdate:
 
         with pytest.raises(AttributeError):
             update.price = 200.00  # Should raise error
+
+    def test_market_status_creation(self):
+        """Test provider status metadata."""
+        status = MarketStatus(
+            mode=MarketSourceMode.SIMULATOR,
+            provider="simulator",
+            healthy=True,
+            message="ok",
+            last_success_at=123.0,
+        )
+
+        assert status.mode == MarketSourceMode.SIMULATOR
+        assert status.provider == "simulator"
+        assert status.healthy is True
+        assert status.message == "ok"
+        assert status.last_success_at == 123.0

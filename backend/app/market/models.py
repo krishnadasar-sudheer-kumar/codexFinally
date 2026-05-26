@@ -4,6 +4,15 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
+from enum import StrEnum
+
+
+class MarketSourceMode(StrEnum):
+    """How FinAlly is currently sourcing market prices."""
+
+    SIMULATOR = "simulator"
+    MASSIVE_SNAPSHOT = "massive_snapshot"
+    MASSIVE_EOD_SIMULATED = "massive_eod_simulated"
 
 
 @dataclass(frozen=True, slots=True)
@@ -47,3 +56,14 @@ class PriceUpdate:
             "change_percent": self.change_percent,
             "direction": self.direction,
         }
+
+
+@dataclass(frozen=True, slots=True)
+class MarketStatus:
+    """Current market data provider status."""
+
+    mode: MarketSourceMode
+    provider: str
+    healthy: bool
+    message: str
+    last_success_at: float | None = None

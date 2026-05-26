@@ -1,5 +1,7 @@
 """Tests for PriceCache."""
 
+from concurrent.futures import ThreadPoolExecutor
+
 from app.market.cache import PriceCache
 
 
@@ -101,3 +103,39 @@ class TestPriceCache:
         cache = PriceCache()
         update = cache.update("AAPL", 190.12345)
         assert update.price == 190.12
+
+    def test_ticker_normalization(self):
+        """Test cache normalizes tickers at boundaries."""
+        cache = PriceCache()
+        update = cache.update(" aapl ", 190.00)
+        assert update.ticker == "AAPL"
+        assert cache.get("aapl") == update
+        assert " aapl " in cache
+
+    def test_remove_increments_version_when_removed(self):
+        """Test removing an existing ticker increments version."""
+        cache = PriceCache()
+        cache.update("AAPL", 190.00)
+        version = cache.version
+        cache.remove("aapl")
+        assert cache.version == version + 1
+
+    def test_remove_missing_does_not_increment_version(self):
+        """Test removing a missing ticker does not create fake changes."""
+        cache = PriceCache()
+        version = cache.version
+        cache.remove("AAPL")
+        assert cache.version == version
+
+    def test_threaded_writes(self):
+        """Smoke test concurrent writers."""
+        cache = PriceCache()
+
+        def write_price(i: int) -> None:
+            cache.update(f"T{i % 5}", 100 + i)
+
+        with ThreadPoolExecutor(max_workers=8) as executor:
+            list(executor.map(write_price, range(100)))
+
+        assert len(cache) == 5
+        assert cache.version == 100
